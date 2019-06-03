@@ -1,0 +1,1009 @@
+26 april 2019
+P1.27
+PINSEL3		01
+22:23 bit	 
+
+0100 0000 0000 0000 0000 0000 
+
+PINMODE3	NA(related to input)
+
+PINMODE_OD	NA
+
+PINSEL3	= PINSEL3 | (1<<22);
+
+PINSEL3	= PINSEL3 | 0x00040000;
+		
+------------------------------------------------------
+CLKOUTSEL = 0x00 00 01 01
+------------------------------------------------------
+Calculation of clock for 1 khz
+MOVW	1
+
+NOP	1
+SUBS	1
+SUB	1
+BNE	1
+
+1 machine cycle time= 1/cpuclk = 1/72MHz = 14ns*4 = 56ns
+
+1KHz= 1ms time interval = .5ms ON, .5ms OFF
+
+no of clks = .5ms / 56ns = 500000/56 = 8928
+
+=================================================================
+
+29 apr 2019
+1. Formula to get memory address for PINSEL, PINMODE, PINMODE_OD where i is the register number
+Peripheral base address + Offset + formula.
+
+2. What registers to configure with what values for the below functionality.
+i. PWM1
+PINSEL4 = PINSEL4 |  0x01;0x02
+
+ii. ADC0
+PINSEL1 = PINSEL1 |  0x01<<14;
+
+
+iii. P0->22 as input
+//Select the pin functionality as gpio
+PINSEL1 = PINSEL1   & ~(0x3<<12)
+PINSEL1 = PINSEL1   & 0xFFFF CFFF
+//pin direction
+FIO0DIR = FIO0DIR & ~(1<<22);
+//PINMODE - to enable pull up/pull down
+
+iv. P0->15 as output
+FIO0DIR |= (1<<15);
+
+v. SPI0 channel 0
+
+3. PLL0 & clock setting for 100MHz cclk 
+ext osc: 12 MHz
+fcco = 300 MHz
+n=2
+m=25
+CLKSRCSEL = 0x0000 0000;
+PLL0CFG = 0x0001 0018
+PLL0CON = 0x0000 0001
+PLL0FEED = 0xAA
+PLL0FEED = 0x55
+while (!(PLL0STAT & 1<<26));
+PLL0CON = 0x0000 0003
+PLL0FEED = 0xAA
+PLL0FEED = 0x55
+
+------------------------------------------------------
+30 apr 2019
+3. PLL0 & clock setting for 98MHz cclk.
+ext osc: 12 MHz
+fcco = 294 MHz
+n=4
+m=31
+CLKSRCSEL = 0x0000 0000;
+PLL0CFG = 0x0004 001F
+PLL0CON = 0x0000 0001
+PLL0FEED = 0xAA
+PLL0FEED = 0x55
+while (!(PLL0STAT & 1<<26));
+PLL0CON = 0x0000 0003
+PLL0FEED = 0xAA
+PLL0FEED = 0x55
+
+
+
+- Code to turn ON and turn OFF onboard led on lpc1768h.
+- Code to turn ON led with a switch onboard.
+
+PORT DRIVER 
+- Function to read a value from a port_pin and return its state
+ex: state PinRead(uint_8 Port_number, uint_8 Pin_number)
+
+- Function to write a value onto a port_pin.
+ex: void PinWrite(uint_8 Port_number, uint_8 Pin_number, state pin_state)
+void PinWrite(uint_8 Port_number, uint_8 Pin_number, state pin_state)
+{
+	uint32_t *Port_addr=(uint32_t *) LPC_GPIO_BASE +PIN_OFFSET + 0x20*Port_number;
+	if(Pin_state)
+	{
+		   *Port_addr=((*port_addr) |0x01 << pin_number);
+	}
+	else
+	{
+		*Port_addr=((*port_addr) & ~(0x01 << pin_number));
+	}
+PinWrite(0,16,1)
+0x10020000 --->0x10030000
+
+PinWrite(0,16,0)
+0x10030000--->
+--------------------------------------------------------------------------
+
+- Function to set functionality
+ex: void PinSelFunc(uint_8 Port_number, uint_8 Pin_number, func pin_func)
+
+enum epinfun
+{
+GPIO=0;
+
+ALT1,
+ALT2,
+ALT3
+};
+void PinSelFunc(uint_8 Port_number, uint_8 Pin_number, func pin_func)
+{
+uint32_t* portaddr;
+if(Pin_number<=15)
+{
+Portaddr=(*PINSEL0_addr +Portnumber*8);//Y 8 Means every port0 two (pinsel0 &pinsel1=0x4002c000)are thier port1 two (pinsel2 &pinsel3=0x4002c008)
+*(Portaddr)=*(Portaddr) & ~(3<<Pin_number*2);//clear the target bits
+*(Portaddr)=*(Portaddr) | (3<<Pin_number*2);
+}
+else
+{
+Portaddr=(*PINSEL0_addr+0x04 +Portnumber*8);//why 0x04 means (pinsel0=0:15 to pinsel1=31:16)
+*(Portaddr)=*(Portaddr) & ~(3<<Pin_number-16*2);
+*(Portaddr)=*(Portaddr) |(3<<Pin_number-16*2);
+}
+
+
+
+
+---------------------------------------------------------------------------
+
+- Function to set pin dir
+enum ePinDir
+{
+INPUT=0;
+OUTPUT
+};
+ex: void PinDir(uint_8 Port_number, uint_8 Pin_number,ePinDir Pin_Dir)
+uint32_t *Port_addr=(uint32_t *) LPC_GPIO_BASE +(0x20*Port_number);
+if(Pin_Dir)
+{
+  *Port_addr=((*port_addr) |0x01 << pin_number);
+}
+else
+{
+  *Port_addr=((*port_addr) & ~(0x01 << pin_number));
+}	
+}	
+------------------------------------------------------
+void Pinmode(uint_8 Port_number, uint_8 Pin_number,mode Pinmode)
+enum mode(GIO
+uint32_t *Port_addr=(uint32_t *) (pinsel0+40)+(port_number*4);
+
+
+
+-Function to read a ADC value.
+- 
+- Write a driver for 74HC595 without using SPI.
+
+-Generate a square wave of 1khz
+pinselfunc
+pindir
+pinwrite
+------------------------------------------------------------------------- 
+-1.Funtion to interface with Hc595 serial parallel IC
+void serial_write(uint8_t data)
+{
+count=8;i=100000;
+while(count)
+{
+clock high-->initilaize the spi clock for desired bandrate
+p0.pin1=data &0x01;-->put entire data onto spi buffer
+bit_write
+delay();--->start the transmission
+clock low
+delay();
+count--;
+}
+pull_latch_high
+delay();
+pull_latch_low
+delay();
+}
+-------------------------------------------------------
+
+led blinking programm
+#include "lpc17xx.h"
+#include "type.h"
+void delay(void);
+int main (void)
+{	    		
+  uint32_t i, j;
+
+  /* SystemClockUpdate() updates the SystemFrequency variable */
+  SystemClockUpdate();
+
+  //LPC_GPIO2->FIODIR = 0x000000FF;		/* P2.xx defined as Outputs */
+  //LPC_GPIO2->FIOCLR = 0x000000FF;		/* turn off all the LEDs */
+	LPC_PINCON->PINSEL3 = LPC_PINCON->PINSEL3 & ~(3<<26);
+	LPC_GPIO1->FIODIR =LPC_GPIO1->FIODIR | 1<<29;
+	while(1)
+	{
+		LPC_GPIO1->FIOSET =LPC_GPIO1->FIOSET  | 1<<29;
+		delay();
+		LPC_GPIO1->FIOCLR =LPC_GPIO1->FIOCLR | 1<< 29;
+		delay();
+	}
+}
+void delay(void)
+{
+		int i,j;
+		
+		for(i = 0; i < 800; i++)
+		{
+			for(j = 0; j <1000 ; j++);
+		}
+}
+-------------------------------------------------------------------------------
+**switch programmm**
+#include "type.h"
+void delay(void);
+int main (void)
+{                                              
+  uint32_t i, j;
+
+  SystemClockUpdate();
+
+  //LPC_GPIO2->FIODIR = 0x000000FF;                   /* P2.xx defined as Outputs */
+  //LPC_GPIO2->FIOCLR = 0x000000FF;                   /* turn off all the LEDs */
+                                                                                                                
+    LPC_PINCON->PINSEL3 = LPC_PINCON->PINSEL3 & ~(3<<16);    //Selecting the GPIO1. select the 24 pin for switch.
+    LPC_PINCON->PINSEL3 = LPC_PINCON->PINSEL3 & ~(3<<26);                    // selecting the GPIO1.select the pin 29 for LED.
+    LPC_GPIO1->FIODIR = LPC_GPIO1->FIODIR | (1<<29);                   //giving the direction 1 means is output for led pin
+  //LPC_GPIO1->FIODIR = LPC_GPIO1->FIODIR & ~(1<<24); 	//giving the direction 0 means is input for switch pin
+    while(1)
+			{
+				if(LPC_GPIO1->FIOPIN >> 24 & 1 )//checking the pin 24 is high 1
+					{
+						 LPC_GPIO1->FIOCLR3 =LPC_GPIO1->FIOCLR3 | (1<<5);//LED is ON
+					}
+					 else
+					 {
+						 LPC_GPIO1->FIOSET3 =LPC_GPIO1->FIOSET3  | (1<<5);
+					 }
+				 }
+			 }
+                                                                                                              
+ -----------------------------------------------------------------------------------------------------------------------
+- Function to read a ADC value.
+- 
+- Write a driver for 74HC595 without using SPI.
+- -----------------------------------------------------------------------------------------------
+/****************************************************************************
+ *   $Id:: IOtest.c 6097 2011-01-07 04:31:25Z nxp12832                      $
+ *   Project: NXP LPC17xx GPIO example
+ *
+ *   Description:
+ *     This file contains GPIO test modules, main entry, to test GPIO APIs.
+ *
+ ****************************************************************************
+ * Software that is described herein is for illustrative purposes only
+ * which provides customers with programming information regarding the
+ * products. This software is supplied "AS IS" without any warranties.
+ * NXP Semiconductors assumes no responsibility or liability for the
+ * use of the software, co`nveys no license or title under any patent,
+ * copyright, or mask work right to the product. NXP Semiconductors
+ * reserves the right to make changes in the software without
+ * notification. NXP Semiconductors also make no representation or
+ * warranty that such application will be suitable for the specified
+ * use without further testing or modification.
+****************************************************************************/
+
+#include "lpc17xx.h"
+#include "type.h"
+#define PIN_OFFSET 0x14
+#define PINSELCT0ADDR 0x4002C000
+#define PINMODE0ADDR  0x4002C040
+enum state {LOW,HIGH};
+enum pin_dir{OFF,ON};
+//enum state PinRead{ uint32_t, uint32_t };
+enum function_selection
+{
+	gpio = 0,
+	first_alternate = 1,
+	second_alternate = 2,
+	third_alternate = 3,
+	
+};
+enum pinmode
+{
+	pull_up = 0,
+	repeater =1,
+	no_pull_no_down =2,
+	on_chip_pull_up =3
+};
+void delay(void);
+void PinSelFunc(uint8_t , uint8_t ,enum function_selection );
+void PinModeSel(uint8_t , uint8_t, enum pinmode);
+void PinWrite(uint8_t , uint8_t ,enum state );
+uint32_t PinRead(uint32_t, uint32_t);
+int main (void)
+{    
+	//uint32_t  i=10000;	
+	SystemClockUpdate();
+	LPC_PINCON->PINSEL3 = LPC_PINCON->PINSEL3 & ~(3<<26);		// selecting the GPIO1.select the pin 29 for LED.	
+	LPC_GPIO1->FIODIR = LPC_GPIO1->FIODIR | (1<<29);		//giving the direction 1 means is output for led pin
+	while(1)
+	{
+		PinWrite(1,29,HIGH);
+		delay();
+		PinWrite(1,29,LOW);
+		delay();
+	}
+	//PinModeSel(1,29,2);//checking pinmodesel funtion
+	//PinSelFunc(2,1,1);//checking pinselfuntion
+}
+void delay(void)//clock generation for 1khz
+{
+	uint32_t i;
+	PinWrite(1,29,HIGH);
+	i=8928;
+	while(i--);
+	PinWrite(1,29,LOW);
+	i=8928;
+	while(i--);
+}
+uint32_t  PinRead(uint32_t Port_number, uint32_t Pin_number)
+{
+	
+		uint32_t *port_addr;
+	  uint32_t return_value;
+	
+		port_addr =(uint32_t*)( LPC_GPIO_BASE + 0x14 + 0x20 * Port_number);
+	
+		return_value= ((*port_addr )>> Pin_number) & 0x01;
+	return return_value;
+}
+void PinWrite(uint8_t Port_number, uint8_t Pin_number,enum state pin_state)
+{
+	uint32_t *port_addr;
+	if(pin_state !=0)
+	{
+		
+		port_addr =(uint32_t*)((LPC_GPIO_BASE + PIN_OFFSET + 0x20 * Port_number));
+		*port_addr = (*port_addr) | 0x01<<Pin_number;
+	}
+	else
+	{
+		port_addr =(uint32_t*)(LPC_GPIO_BASE + PIN_OFFSET + (0x20 * Port_number));
+		*port_addr = (*port_addr )& ~(0x01<<Pin_number);
+	}
+
+}
+void PinDir(uint8_t Port_number,uint8_t Pin_number,enum state pin_dir)
+{
+	uint32_t *port_addr;
+
+	if(pin_dir !=0)
+	{
+		
+		*port_addr =(uint32_t)( LPC_GPIO_BASE + 0x20 * Port_number);
+	
+		*port_addr = (*port_addr )| 0x01<<Pin_number;
+	}
+	else
+	{
+		*port_addr =(uint32_t) (LPC_GPIO_BASE + 0x20 * Port_number);
+		*port_addr = (*port_addr )& ~(0x01<<Pin_number);
+	}	
+}
+void PinSelFunc(uint8_t  Port_number, uint8_t Pin_number, enum function_selection function_number)
+{
+	uint32_t* PortAddr;
+	if(Pin_number<=15)
+	{
+		PortAddr = (uint32_t*)( PINSELCT0ADDR + Port_number * 8);	
+		*(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+		*(PortAddr)= *(PortAddr) | (function_number<<Pin_number *2);
+	}
+	else
+	{
+		Pin_number = Pin_number -16;
+		
+		PortAddr = (uint32_t*) (PINSELCT0ADDR + 0x4 + (Port_number * 8));
+		*(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+		*(PortAddr)= *(PortAddr) | (function_number<<Pin_number *2);
+	}
+}
+
+void PinModeSel(uint8_t  Port_number, uint8_t Pin_number, enum pinmode mode)
+{
+	uint32_t* PortAddr;
+	if(Pin_number<=15)
+	{
+		PortAddr = (uint32_t*) (PINMODE0ADDR + Port_number * 8);	
+		*(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+		*(PortAddr)= *(PortAddr) | (mode<<Pin_number *2);
+	}
+	else
+	{
+		Pin_number = Pin_number -16;
+		
+		PortAddr = (uint32_t*) (PINMODE0ADDR + 0x4 + (Port_number * 8));
+		*(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+		*(PortAddr)= *(PortAddr) | (mode<<Pin_number *2);
+	}
+}
+------------------------------------------------------------------------------------------------
+serial write for 74hc595
+/****************************************************************************
+ *   $Id:: IOtest.c 6097 2011-01-07 04:31:25Z nxp12832                      $
+ *   Project: NXP LPC17xx GPIO example
+ *
+ *   Description:
+ *     This file contains GPIO test modules, main entry, to test GPIO APIs.
+ *
+ ****************************************************************************
+ * Software that is described herein is for illustrative purposes only
+ * which provides customers with programming information regarding the
+ * products. This software is supplied "AS IS" without any warranties.
+ * NXP Semiconductors assumes no responsibility or liability for the
+ * use of the software, co`nveys no license or title under any patent,
+ * copyright, or mask work right to the product. NXP Semiconductors
+ * reserves the right to make changes in the software without
+ * notification. NXP Semiconductors also make no representation or
+ * warranty that such application will be suitable for the specified
+ * use without further testing or modification.
+****************************************************************************/
+
+#include "lpc17xx.h"
+#include "type.h"
+#define PIN_OFFSET 0x14
+#define PINSELCT0ADDR 0x4002C000
+#define PINMODE0ADDR  0x4002C040
+enum state {LOW,HIGH};
+enum pin_dir {OFF=0,ON};
+//enum state PinRead{ uint32_t, uint32_t };
+enum function_selection
+{
+	gpio = 0,
+	first_alternate = 1,
+	second_alternate = 2,
+	third_alternate = 3,
+	
+};
+enum pinmode
+{
+	pull_up = 0,
+	repeater =1,
+	no_pull_no_down =2,
+	on_chip_pull_up =3
+};
+void delay(void);
+void serial_write(uint8_t data);
+void PinSelFunc(uint8_t , uint8_t ,enum function_selection );
+void PinModeSel(uint8_t , uint8_t, enum pinmode);
+void PinWrite(uint8_t , uint8_t ,enum state );
+void PinDir(uint8_t,uint8_t,enum  pin_dir);
+uint32_t PinRead(uint32_t, uint32_t);
+int main (void)
+{    
+	//uint32_t  i=10000;	
+	SystemClockUpdate();
+	//LPC_PINCON->PINSEL3 = LPC_PINCON->PINSEL3 & ~(3<<26);		// selecting the GPIO1.select the pin 29 for LED.	
+	//LPC_GPIO1->FIODIR = LPC_GPIO1->FIODIR | (1<<29);		//giving the direction 1 means is output for led pin
+	//delay();
+	/*delay();
+	while(1)
+	{
+		PinWrite(1,29,HIGH);
+		delay();
+		PinWrite(1,29,LOW);
+		delay();
+	}
+	//PinModeSel(1,29,2);//checking pinmodesel funtion
+	//PinSelFunc(2,1,1);//checking pinselfuntion*/
+	serial_write(01);
+	//delay();
+	//serial_write(03);
+	//delay();
+}
+void serial_write(uint8_t data)
+{
+	uint8_t i,bit_write;
+	PinSelFunc(1,21,0);
+	PinSelFunc(1,22,0);
+	PinSelFunc(1,23,0);
+	PinDir(1,21,OFF);
+	PinDir(1,22,OFF);
+	PinDir(1,23,OFF);
+	for(i=0;i<8;i++)
+	{
+		bit_write=data & 0x01;
+		data=data >> 1;
+		if(bit_write)
+		{
+			PinWrite(1,21,HIGH);    //data=SER
+		}
+		else
+		{
+			PinWrite(1,21,LOW);
+		}
+		PinWrite(1,22,HIGH);   //clock pulse=srclk
+		delay();
+		PinWrite(1,22,LOW);
+		delay();
+	}
+	PinWrite(1,23,HIGH);    //latch pulse=rclk
+	delay();
+	PinWrite(1,23,LOW);
+}
+void delay(void)  //clock generation 
+{
+	uint32_t i;
+	PinWrite(1,29,HIGH);
+	i=8928000;
+	while(i--);
+	PinWrite(1,29,LOW);
+	i=8928000;
+	while(i--);
+}
+uint32_t  PinRead(uint32_t Port_number, uint32_t Pin_number)
+{
+	
+		uint32_t *port_addr;
+	  uint32_t return_value;
+	
+		port_addr =(uint32_t*)( LPC_GPIO_BASE + 0x14 + 0x20 * Port_number);
+	
+		return_value= ((*port_addr )>> Pin_number) & 0x01;
+	return return_value;
+}
+void PinWrite(uint8_t Port_number, uint8_t Pin_number,enum state pin_state)
+{
+	uint32_t *port_addr;
+	if(pin_state !=0)
+	{
+		
+		port_addr =(uint32_t*)((LPC_GPIO_BASE + PIN_OFFSET + 0x20 * Port_number));
+		*port_addr = (*port_addr) | 0x01<<Pin_number;
+	}
+	else
+	{
+		port_addr =(uint32_t*)(LPC_GPIO_BASE + PIN_OFFSET + (0x20 * Port_number));
+		*port_addr = (*port_addr )& ~(0x01<<Pin_number);
+	}
+}
+void PinDir(uint8_t Port_number,uint8_t Pin_number,enum pin_dir pin_dir)
+{
+	uint32_t *port_addr;
+
+	if(pin_dir !=0)
+	{
+		
+		*port_addr =(uint32_t)( LPC_GPIO_BASE + 0x20 * Port_number);
+	
+		*port_addr = (*port_addr )| 0x01<<Pin_number;
+	}
+	else
+	{
+		*port_addr =(uint32_t) (LPC_GPIO_BASE + 0x20 * Port_number);
+		*port_addr = (*port_addr )& ~(0x01<<Pin_number);
+	}	
+}
+void PinSelFunc(uint8_t  Port_number, uint8_t Pin_number, enum function_selection function_number)
+{
+	uint32_t* PortAddr;
+	if(Pin_number<=15)
+	{
+		PortAddr = (uint32_t*)( PINSELCT0ADDR + Port_number * 8);	
+		*(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+		*(PortAddr)= *(PortAddr) | (function_number<<Pin_number *2);
+	}
+	else
+	{
+		Pin_number = Pin_number -16;
+		
+		PortAddr = (uint32_t*) (PINSELCT0ADDR + 0x4 + (Port_number * 8));
+		*(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+		*(PortAddr)= *(PortAddr) | (function_number<<Pin_number *2);
+	}
+}
+
+void PinModeSel(uint8_t  Port_number, uint8_t Pin_number, enum pinmode mode)
+{
+	uint32_t* PortAddr;
+	if(Pin_number<=15)
+	{
+		PortAddr = (uint32_t*) (PINMODE0ADDR + Port_number * 8);	
+		*(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+		*(PortAddr)= *(PortAddr) | (mode<<Pin_number *2);
+	}
+	else
+	{
+		Pin_number = Pin_number -16;
+		PortAddr = (uint32_t*) (PINMODE0ADDR + 0x4 + (Port_number * 8));
+		*(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+		*(PortAddr)= *(PortAddr) | (mode<<Pin_number *2);
+	}
+}
+------------------------------------------------------------------------------------------------
+--how do you interface a sensor with a microcontroller
+12->3.3v
+8.3->3v
+
+ADC setting 
+PCON register
+PDN bit
+congifure clock
+PINSEL
+PINMODE
+OP-INTERRUPT
+OP-DMA
+------------------------------------------------------------------------
+connect potentiometer and read the voltage using ADC
+connect one sensor (temp/humidity/battery) and read using ADC
+COMbine above 2 and read the same using adc use burst conversion mode
+AD0-AD5
+
+----------------------------------------------------------------------------------------
+/****************************************************************************
+*   $Id:: IOtest.c 6097 2011-01-07 04:31:25Z nxp12832                      $
+*   Project: NXP LPC17xx GPIO example
+*
+*   Description:
+*     This file contains GPIO test modules, main entry, to test GPIO APIs.
+*
+****************************************************************************
+* Software that is described herein is for illustrative purposes only
+* which provides customers with programming information regarding the
+* products. This software is supplied "AS IS" without any warranties.
+* NXP Semiconductors assumes no responsibility or liability for the
+* use of the software, conveys no license or title under any patent,
+* copyright, or mask work right to the product. NXP Semiconductors
+* reserves the right to make changes in the software without
+* notification. NXP Semiconductors also make no representation or
+* warranty that such application will be suitable for the specified
+* use without further testing or modification.
+****************************************************************************/
+
+#include "lpc17xx.h"
+#include "type.h"
+#define PIN_OFFSET 0x14
+#define PINSELCT0ADDR 0x4002C000
+#define PINMODE0ADDR  0x4002C040
+enum state {LOW,HIGH};
+enum pin_dir{OFF,ON};
+void SerialWrite(uint8_t);
+//enum state PinRead{ uint32_t, uint32_t };
+enum function_selection
+{
+                gpio = 0,
+                first_alternate = 1,
+                second_alternate = 2,
+                third_alternate = 3,
+                
+};
+enum pinmode
+{
+                pull_up = 0,
+                repeater =1,
+                no_pull_no_down =2,
+                on_chip_pull_up =3
+};
+void delay(void);
+void PinSelFunc(uint8_t , uint8_t ,enum function_selection );
+void PinModeSel(uint8_t , uint8_t, enum pinmode);
+void PinWrite(uint8_t , uint8_t ,enum state );
+void PinDir(uint8_t ,uint8_t ,enum state);
+uint32_t PinRead(uint32_t, uint32_t);
+void delay1(void);
+int main (void)
+{    
+                 
+                SystemClockUpdate();
+                //LPC_PINCON->PINSEL3 = LPC_PINCON->PINSEL3 & ~(3<<26);               // selecting the GPIO1.select the pin 29 for LED.       
+                //LPC_GPIO1->FIODIR = LPC_GPIO1->FIODIR | (1<<29);                   //giving the direction 1 means is output for led pin
+                
+                                                                
+                                                                PinSelFunc(1,21,gpio);                                                                   //selecting the pin p1.21 and direction as output(SER data pin)
+                                                                PinDir(1,21,HIGH);
+                                                                
+                                                                PinSelFunc(1,22,gpio);                                                                   //selecting the pin p1.22 and direction as output(SRCLK pin)
+                                                                PinDir(1,22,HIGH);
+                                                                
+                                                                PinSelFunc(1,23,gpio);                                                                   //selecting the pin p1.23 and direction as output(RCLK pin)
+                                                                PinDir(1,23,HIGH);           
+                                                                while(1)
+																																{
+                                                               
+																																
+																																SerialWrite(1);
+																																	delay1();
+																																
+																																	SerialWrite(2);
+																																	delay1();
+																																	SerialWrite(4);
+																																	delay1();
+																																	SerialWrite(8);
+																																	delay1();
+																																	SerialWrite(16);
+																																	delay1();
+																																	SerialWrite(32);
+																																	delay1();
+																																	SerialWrite(64);
+																																	delay1();
+																																	SerialWrite(128);
+																																	delay1();
+																															
+																																
+																																	
+																																}
+                                                
+}
+void SerialWrite(uint8_t data)
+{
+                                                uint8_t val,i;
+                                                for(i=0;i<8;i++)
+                                                {
+                                                                                val=data & 0x01;                                                                                                                                                                                               
+                                                                                data=data>>1;                                                                                                                                                  
+                                                                
+                                                                if(val)
+                                                                {
+                                                                                                PinWrite(1,21,HIGH);
+                                                                }
+                                                                else
+                                                                {
+                                                                                                PinWrite(1,21,LOW);
+                                                                }
+                                                
+                                                                PinWrite(1,22,HIGH);                                                                                                     //srclk pulse
+                                                                delay();
+                                                                PinWrite(1,22,LOW);
+                                                                delay();
+                                                }
+                                                PinWrite(1,23,HIGH);                                                                                                     //rclk pulse
+                                                delay();
+                                                PinWrite(1,23,LOW);
+                                                delay();
+}
+
+void delay(void)                                                                                                                                                                                                                                                                                                                               //for 1khz.
+{
+                uint32_t i;
+                       
+                i=8928;
+                while(i--);
+}
+
+void delay1(void)
+{
+	uint32_t i,j;
+	for(i=0;i<800;i++)
+	{
+		for(j=0;j<10000;j++);
+	}
+}
+	
+uint32_t  PinRead(uint32_t Port_number, uint32_t Pin_number)
+{
+                
+                                uint32_t *port_addr;
+                  uint32_t return_value;
+                
+                                port_addr =(uint32_t*)( LPC_GPIO_BASE + 0x14 + 0x20 * Port_number);
+                
+                                return_value= ((*port_addr )>> Pin_number) & 0x01;
+                return return_value;
+}
+void PinWrite(uint8_t Port_number, uint8_t Pin_number,enum state pin_state)
+{
+              uint32_t *port_addr=(uint32_t *) (LPC_GPIO_BASE +PIN_OFFSET + 0x20*Port_number);
+                                                                                                                                port_addr =(uint32_t*)((LPC_GPIO_BASE + PIN_OFFSET + 0x20 * Port_number));
+                if(pin_state !=0)
+                {                                
+                                
+                                *port_addr = (*port_addr) | 0x01<<Pin_number;
+                }
+                else
+                {                           
+                                *port_addr = (*port_addr )& ~(0x01<<Pin_number);
+                }
+}
+
+void PinDir(uint8_t Port_number,uint8_t Pin_number,enum state pin_dir1)
+{
+    
+                                 uint32_t * port_addr =(uint32_t*)( LPC_GPIO_BASE + 0x20 * Port_number);
+
+     if(pin_dir1 !=0)
+     {
+                                
+          *port_addr = (*port_addr )| (0x01<<Pin_number);
+      }
+      else
+      {
+         
+          *port_addr = (*port_addr )& ~(0x01<<Pin_number);
+      }              
+}
+void PinSelFunc(uint8_t  Port_number, uint8_t Pin_number, enum function_selection function_number)
+{
+                uint32_t* PortAddr;
+                if(Pin_number<=15)
+                {
+                                PortAddr = (uint32_t*)( PINSELCT0ADDR + Port_number * 8);    
+                                *(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+                                *(PortAddr)= *(PortAddr) | (function_number<<Pin_number *2);
+                }
+                else
+                {
+                                Pin_number = Pin_number -16;
+                                
+                                PortAddr = (uint32_t*) (PINSELCT0ADDR + 0x4 + (Port_number * 8));
+                                *(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+                                *(PortAddr)= *(PortAddr) | (function_number<<Pin_number *2);
+                }
+}
+
+void PinModeSel(uint8_t  Port_number, uint8_t Pin_number, enum pinmode mode)
+{
+                uint32_t* PortAddr;
+                if(Pin_number<=15)
+                {
+                                PortAddr = (uint32_t*) (PINMODE0ADDR + Port_number * 8);  
+                                *(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+                                *(PortAddr)= *(PortAddr) | (mode<<Pin_number *2);
+                }
+                else
+                {
+                                Pin_number = Pin_number -16;
+                                
+                                PortAddr = (uint32_t*) (PINMODE0ADDR + 0x4 + (Port_number * 8));
+                                *(PortAddr)= *(PortAddr) & ~(3<<Pin_number *2);
+                                *(PortAddr)= *(PortAddr) | (mode<<Pin_number *2);
+                }
+}
+----------------------------------------------------------------------------------------------
+
+"ADC PROGRAMMM"
+#include "lpc17xx.h"
+#include "system_LPC17xx.h"
+void adc(void);
+uint32_t ADC_VALUE=0;
+int main()
+{
+	SystemClockUpdate();
+	adc();   
+}
+void adc(void)
+{
+	LPC_SC->PCONP |=(1<<12);
+	LPC_PINCON->PINSEL1 |=1<<14;
+	LPC_PINCON->PINMODE1 |=1<<15;
+	LPC_ADC->CR |=(2<<8);
+	LPC_ADC->CR |=(1<<21);
+  while(1)
+		{
+			LPC_ADC->CR |=1<<24;
+			while(((LPC_ADC->GDR>>31) & 0X01)==0);
+			ADC_VALUE=(LPC_ADC->GDR >> 4) & 0xFFF;
+		}	
+	}
+------------------------------------------------------------
+"connect battery read adc value"
+#include "lpc17xx.h"
+#include "system_LPC17xx.h"
+void adc(void);
+uint32_t res=0;
+float volts=0;
+
+int main()
+{
+	SystemClockUpdate();
+	adc();   
+}
+void adc(void)
+{
+	LPC_SC->PCONP =LPC_SC->PCONP | (1<<12);               //Enable clk for ADC
+	LPC_PINCON->PINSEL1 =LPC_PINCON->PINSEL1 |(1<<14);    //Pinsel for ADC
+	LPC_PINCON->PINMODE1 =LPC_PINCON->PINMODE1 | 1<<15;   //Pinmode for ADC
+	LPC_ADC->CR =LPC_ADC->CR | (2<<8);                    // Set the clock ADC  
+	LPC_ADC->CR =LPC_ADC->CR | (1<<21);                   // Enable ADC Mode
+  while(1)
+		{
+			LPC_ADC->CR =LPC_ADC->CR | 1<<24;       //start converstion
+			while(((LPC_ADC->GDR>>31) & 0X01)==0); 
+			res=(LPC_ADC->GDR >> 4) & 0xFFF;
+			volts = (res*3)/4095;
+		}	
+	}
+-------------------------------------------------------------
+"BRUST MODE"
+#include "lpc17xx.h"
+#include "system_LPC17xx.h"
+void adc(void);
+uint32_t res=0;
+uint32_t res1=0;
+int main()
+{
+	SystemClockUpdate();
+	adc();   
+}
+void adc(void)
+{
+	LPC_SC->PCONP =LPC_SC->PCONP | (1<<12);               //Enaable the power for A/D                                
+	LPC_PINCON->PINSEL1 =LPC_PINCON->PINSEL1 |(1<<14);    //Pinsel for ADC p0.23
+	LPC_PINCON->PINSEL1 =LPC_PINCON->PINSEL1 |(1<<16);    //Pinsel for ADC p0.24
+	
+	LPC_PINCON->PINMODE1 =LPC_PINCON->PINMODE1 | 1<<15;   //Pinmode for ADC 
+	LPC_PINCON->PINMODE1 =LPC_PINCON->PINMODE1 | 1<<17;
+
+	LPC_ADC->CR =LPC_ADC->CR | (2<<8);                    // Set the clock ADC  
+	LPC_ADC->CR =LPC_ADC->CR | (1<<21);  		      // Enable ADC Mode
+
+	LPC_ADC->CR = LPC_ADC->CR | 0x03;		      // Channel celection 0 and 1
+  	while(1)
+		{
+			LPC_ADC->CR =LPC_ADC->CR | 1<<16;      //Brust coversation AD0CR 16 bit Start
+
+			while(((LPC_ADC->DR[0]>>31) & 0X01)==0  && (((LPC_ADC->DR[1]>>31) & 0X01)==0));
+			res=(LPC_ADC->DR[0] >> 4) & 0xFFF;
+			res1=(LPC_ADC->DR[1] >> 4) & 0xFFF;
+		}	
+}
+--------------------------------------------------------------
+INTERRUT
+#include "lpc17xx.h"
+#include "system_LPC17xx.h"
+void EINT(void);
+int main()
+{
+	SystemClockUpdate();
+	EINT();   
+}
+void EINT(void)
+{
+	LPC_SC->EXTINT     = (1<<0) | (1<<1);	     /* Clear Pending interrupts */
+  LPC_PINCON->PINSEL4 = (1<<20)|(1<<22);      /* Configure P2_10,P2_11 as EINT0/1 */
+  LPC_SC->EXTMODE     = (1<<0) | (1<<1);     /* Configure EINTx as Edge Triggered*/
+  LPC_SC->EXTPOLAR    = (1<<0) | (1<<1);    /* Configure EINTx as Falling Edge */
+}
+============================================================
+WDT
+1. Choose the timing for watchdog - 50ms
+2. Configure
+	- WDCLKSEL - 0x01  -->Pclk = 18 MHz
+	- WDMOD - Enable WDT, Enable WT reset
+	- WDTC - load the count value
+	- Feed sequence
+
+
+Watch dog time min =  (1/18Mhz) * 256 * 4 = 56.88 us 
+Watch dog time max = (1/18Mhz)* 2^32 * 4 = 954 s
+WDTC = 50ms/(1/18M s) = 50*18*10^3 = 900000 = 0xDBBA0
+
+#include "lpc17xx.h"
+#include "system_LPC17xx.h"
+void delay(void);
+void watch_dog_init(void);
+int main (void)
+{    	
+		  SystemClockUpdate();
+	    watch_dog_init();                      
+		  LPC_GPIO1->FIODIR = LPC_GPIO1->FIODIR | (1<<29);   
+			LPC_GPIO1->FIOSET =LPC_GPIO1->FIOSET  | 1<<29;
+			delay();
+			LPC_GPIO1->FIOCLR =LPC_GPIO1->FIOCLR | 1<< 29;
+			while(1);				
+}
+void watch_dog_init(void)
+{
+  LPC_WDT->MOD = (0x3);  
+	LPC_WDT->TC = (0xDBBA0)/4;     // once WDEN is set, the WDT will start after feeding
+	LPC_WDT->WDCLKSEL = 0x1;
+  LPC_WDT->FEED = 0xAA;		/* Feeding sequence */
+  LPC_WDT->FEED = 0x55;	
+}
+void delay(void)  //clock generation 
+{
+	uint32_t i=8928;
+	while(i--);
+}
+
+
+
+
