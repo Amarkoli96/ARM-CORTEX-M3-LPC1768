@@ -1,0 +1,32 @@
+   #include "usrdef.h"
+                #include <lpc17xx.h>
+  void INTSPI(void);
+                int main(void)
+                {
+                                uint16_t i = 1;
+                                INTSPI();//initilisation of spi
+                                PinDir(1,29,OUTPUT);
+                                while(1)
+                                {
+                                                LPC_SPI->SPDR = 0xAA;
+                                                while(!(((LPC_SPI->SPSR)>>7) & 1));// Wait for the SPIF bit to be set to 1
+                                                PinWrite(1,29,1);
+                                                while(i--);
+                                                PinWrite(1,29,0);
+                                                i=1;
+                                }
+                }
+               
+                void INTSPI(void)
+                {
+                                LPC_SC->PCONP |= (1<<8); //Power up SPI
+                                LPC_SC->PCLKSEL0 &= ~(0x3<<16); //Set PCLK for SPI = CCLK/4 = 72/4 = 18Mhz (default)
+                                PinSelFunc(0,15,3);//SCK
+                                PinSelFunc(0,16,3);//SSEL
+                                //PinSelFunc(0,17,3);//MISO
+                                PinSelFunc(0,18,3);//MOSI
+                                LPC_SPI->SPCR &= ~(1 << 2); // 8 bit transfer
+                                LPC_SPI->SPCR |= (1 << 5)| (1 << 6);//SPI operates in Master mode, data is transferred LSB first.
+                                LPC_SPI->SPCCR |= 0x8;//SPI0 Clock counter setting.
+                }
+ 

@@ -1,0 +1,81 @@
+//#include "type.h"
+#include "lpc17xx.h"
+#include "system_LPC17xx.h"
+#include "extint.h"
+ 
+
+void EINT1_IRQHandler (void);
+uint32_t EINTInit( void );
+static uint32_t eint1_counter;
+void delay(void);
+uint8_t flag=0;
+int main (void)
+{
+ 
+
+                                SystemInit();
+ 
+
+                                EINTInit();     /* initialize GPIO pins as external interrupts */
+                                if(flag==1)
+                                {
+                                               
+                                }
+                                else if(flag == 2)
+                                {
+                                               
+                                               
+                                }
+                                while( 1 );
+}
+uint32_t EINTInit( void )
+{
+  LPC_PINCON->PINSEL4 |= 01<<22;        /* set P2.11 as EINT1 and*/
+                LPC_PINCON->PINSEL4 |= 01<<24;
+                LPC_GPIO1->FIODIR |= 1<<29;  /* port 1, bit 29 only */
+                LPC_GPIO1->FIODIR |= 1<<24;  /* port 1, bit 24 only */
+ 
+                LPC_GPIO1->FIOCLR |= 1<<29;  /* turn off LED */
+                LPC_GPIO1->FIOCLR |= 1<<24;  /* turn off LED */
+ 
+
+  LPC_SC->EXTMODE |= EINT1_EDGE;                     /* INT1 edge trigger */
+ 
+
+  NVIC_EnableIRQ(EINT1_IRQn);
+                  NVIC_EnableIRQ(EINT2_IRQn);
+                  NVIC_SetPriority(EINT1_IRQn, 3);
+                NVIC_SetPriority(EINT2_IRQn, 2);
+}
+ 
+
+void EINT1_IRQHandler (void)
+{
+                                                               
+                                                LPC_SC->EXTINT |= EINT1;                          /* clear interrupt */
+ 
+
+                                                LPC_GPIO1->FIOSET |= 1<<24;  /* turn ON p1.24 */                       
+                                                delay();
+                                                LPC_GPIO1->FIOCLR |= 1<<24;  /* turn OFF p1.24 */
+                                                delay();
+}
+void EINT2_IRQHandler (void)
+{                             
+  LPC_SC->EXTINT |= EINT2;                        /* clear interrupt */
+               
+                                                LPC_GPIO1->FIOSET |= 1<<29;  /* turn ON p1.29 */
+                                                delay();
+                                                LPC_GPIO1->FIOCLR |= 1<<29;  /* turn OFF p1.29 */                      
+                                                delay();
+}
+void delay(void)
+{
+                uint32_t i,j;
+                for(i=0;i<800;i++)
+                {
+                               
+                                for(j=0;j<10000;j++);
+                }
+               
+}

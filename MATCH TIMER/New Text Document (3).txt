@@ -1,0 +1,34 @@
+	#include"LPC17xx.h"
+	#include"system_LPC17xx.h"
+	
+	void SystemClockUpdate(void);
+	uint8_t flag=0;
+	
+int main()
+{
+	SystemInit();												
+	SystemClockUpdate();
+	
+	LPC_SC->PCONP |= ( 1 << 1 ); //  power up the timer PCTIM0
+	LPC_SC->PCLKSEL0 |= ~( 3 << 2 );//  PCLK is selected for the clock
+	
+	LPC_TIM0->PR = 0xFFF;//  setting the pre scalar value to 0xFFFF FFFE
+	LPC_TIM0->CTCR |= ~(3 << 0);// TC is incremented when the PC reaches to PR
+
+	LPC_PINCON->PINSEL3  |=( 3<< 20);//to select the pin functionality as CAP0.0 on PIN 1.26
+	LPC_GPIO1->FIODIR1   |=( 0 << 26);//set the pin direction as input on pin 1.26
+	LPC_PINCON->PINMODE3 |=( 3 << 20);// the pinmode is made neither pulled up nor pulled down
+	
+	/*LPC_TIM0->MR0 = 0xFFFF;//feeding the match register 0 with value FFFF
+	LPC_TIM0->MCR |=(1 << 0);//TC will be reset to zero when it is equal to mr0
+	LPC_TIM0->IR |=(1 <<0 );// interrupt WILL OCUR ON TIMER0
+	LPC_TIM0->IR |=(1 << 4);
+	LPC_TIM0->EMR |=(3 <<4 );	//this bit will toggle when the TC meets to MR0*/
+	
+	
+	LPC_TIM0->CCR |=(1 << 1);//TC is captured  when the falling edge ocurs on the pin 1.26
+	
+	LPC_TIM0->TCR |=(1 << 0);//  enabling the timer counter and pre scaler counter
+
+	while(1);//for continous running of the program
+}

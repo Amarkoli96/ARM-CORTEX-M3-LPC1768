@@ -1,0 +1,5 @@
+mr0 FFFF
+will give me 
+frequency of    7.225Hz
+duty cycle  	50%
+time period 	138.4ms

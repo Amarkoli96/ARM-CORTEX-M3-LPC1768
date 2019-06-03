@@ -1,0 +1,26 @@
+SystemInit();
+                /*
+                LPC_SC->PCONP |= (1<<22);                      //powering on timer.
+                LPC_SC->PCLKSEL1 &= ~(0x11<<12);       //selecting timer2 in pclksel1 reg.
+                LPC_TIM2->PR = 0x01;                                   //setting pr divider value as 1
+                LPC_TIM2->CTCR &= ~(0x11<<0);                             //timer mode with inc on PCLK rising Edge.
+                LPC_TIM2->TCR = 0x01;                                //enabling the timer 0th bit as 1.
+ 
+
+                i =LPC_TIM2->TC;
+                SystemClockUpdate();
+                j =LPC_TIM2->TC;
+                a=((j-i)*0.05);                                    //calculating time required.
+                //while(1);
+*/
+/*Sample program for 500ms delay using timer2*/
+               
+LPC_SC->PCONP |= (1<<22);                                                                                      //powering on timer.
+LPC_SC->PCLKSEL1 &= ~(0x11<<12);                       //selecting timer2 in pclksel1 reg.            
+LPC_TIM2->PR = 0x0011;                                                                                                              //setting pr value as 17 
+LPC_TIM2->CTCR &= ~(0x11<<0);                                                             //timer mode with inc on PCLK rising Edge.
+LPC_PINCON->PINSEL9 |=(1<<25);                                          //selecting mat2.0 pin for timer 2.
+LPC_TIM2->MR2 = 0x989680;                                                                                     //loading value in MR registers.
+LPC_TIM2->MCR |=(1<<7);                                                                                                         //Reset on MR2: the TC will be reset if MR2 matches it.
+LPC_TIM2->EMR = 0x00000300;                                                                 //When match occurs TC and MR0, this bit will toggle.
+LPC_TIM2->TCR |= (1<<0);                                                                                          //timer counter & prescale counter are enabled for counting.
