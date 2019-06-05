@@ -1,0 +1,122 @@
+
+#include "UserDefineFunction.h"
+int main()
+{
+	uint32_t i;	
+	char a[] ="Kalpesh Mali.\r";
+	
+	UART0_initialization();
+	
+	
+	
+	while(1)
+	{
+		while((LPC_UART0->LSR & 0x20) == 0x20)   /* Polling */
+		{
+			
+			for(i=0;i<=a[i];i++)
+			{
+				
+				LPC_UART0->THR=a[i];
+			}
+			
+		}
+		
+		
+		
+	}
+}
+
+
+
+
+#include "UserDefineFunction.h"
+
+void PinSelFunc(uint8_t port_number,uint8_t pin_number,enum ePinsel mode)
+{
+				uint32_t *port_addr;
+
+				if(pin_number <= 15)
+				{
+							port_addr= (uint32_t*)(LPC_PINCON_BASE + (8*port_number));
+							*(port_addr)=((*port_addr)& ~(3 << pin_number*2));
+							*(port_addr)=((*port_addr)| (mode << pin_number*2));
+				}
+				else
+				{
+							port_addr= (uint32_t*)(LPC_PINCON_BASE +0x04+ (8*port_number));
+							*(port_addr)=((*port_addr)& ~(3 << (pin_number-16)*2));
+							*(port_addr)=((*port_addr)| (mode << (pin_number-16)*2));
+				}
+}
+
+
+void PinWrite(uint8_t port_number,uint8_t pin_number,enum eState pin_state)
+{
+			uint32_t *port_addr;
+			if(pin_state !=0)
+			{
+					port_addr=(uint32_t*)(LPC_GPIO_BASE + 0x14 + (0x20 * port_number));
+					*port_addr=(*port_addr) | 0x01<<pin_number;
+			}
+			else
+			{
+					port_addr=(uint32_t*)(LPC_GPIO_BASE + 0x14 + (0x20 * port_number));
+					*port_addr=(*port_addr) & ~(0x01<<pin_number);
+			}
+}
+
+
+void PinDir(uint8_t port_number,uint8_t pin_number,enum eDirection pin_direction)
+{
+			uint32_t* port_addr;
+			port_addr=(uint32_t*)(LPC_GPIO_BASE + (0x20 *port_number ));
+			if(pin_direction)
+			{
+					*port_addr=((*port_addr) | 0x01 << pin_number );
+			}
+			else
+			{
+					*port_addr=((*port_addr) | ~(0x01 << pin_number ));
+			}
+}
+
+
+
+
+#include "LPC17xx.h"
+#include "system_LPC17xx.h"
+#include "UserDefineFunction.h"
+void UART0_initialization(void)
+{
+	
+	
+		LPC_SC->PCONP= 0x00000008;					/* UART0 power/clock control bit.   */
+	
+		LPC_SC->PCLKSEL0 &=~(3<<6);				/*7:6 PCLK_UART0 Peripheral clock selection for UART0. reset value 00*/
+
+		LPC_PINCON->PINSEL0 = 0x00000050;		/* p0.2 is Tx and p0.3 is Rx*/
+		
+		LPC_UART0->LCR |= 0x80;				/*.Enable access to Divisor Latches.*/
+
+		LPC_UART0->DLL = 52;			/* 9600 baud rate calculation Lower Bit  */
+		LPC_UART0->DLM = 0x00;			/* Higher Bit are 0*/
+	
+		LPC_UART0->FDR =0x21;						/* DivAddValue  [0 - 3 bit] value we get 1 and MulValue [4-7] value we get 2*/
+		LPC_UART0->LCR = 0x03;				/* Word Length Select: Now We selecting 8 bit*/
+		LPC_UART0->FCR = 0x07;				/* 0 bit FIFO enable,1 bit Rx fifo enable,2 bit Tx Fifo Enable*/
+}
+
+
+#include "LPC17xx.h"
+#include "system_LPC17xx.h"
+
+
+enum ePinsel{GPIO=0,ALT_FUNC1,ALT_FUNC2,ALT_FUNC3};
+enum eState{LOW=0,HIGH};
+enum eDirection{INPUT=0,OUTPUT};
+void PinSelFunc(uint8_t ,uint8_t ,enum ePinsel);
+void PinWrite(uint8_t,uint8_t,enum eState);
+void PinDir(uint8_t,uint8_t ,enum eDirection);
+void UART0_initialization(void);
+
