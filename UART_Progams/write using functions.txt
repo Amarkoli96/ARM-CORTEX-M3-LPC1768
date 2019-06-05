@@ -1,0 +1,149 @@
+  #include "usrdef.h"
+	#include <lpc17xx.h>
+  void Init(void);
+	void SerialWrite(char);
+	char SerialRead(void);
+	int main(void)
+	{
+		uint8_t count = 0;
+		char msg[] = {'K','A','R','M','I','C','\0'};
+		Init();
+		while(1)	
+		{
+			while( msg[count]!='\0' )
+			{
+				SerialWrite(msg[count]);
+				count++;
+			}
+			count = 0;
+		}
+	}
+	
+	void Init(void)
+	{
+		LPC_SC->PCONP |= (1<<3); //Power up UART
+		LPC_SC->PCLKSEL0 &= ~(0x3<<6); //Set PCLK for SPI = CCLK/4 = 72/4 = 18Mhz (default)
+		PinSelFunc(0,2,1);//TXD0
+		PinSelFunc(0,3,1);//RXD0
+		
+		LPC_UART0->LCR |= 1 << 7; //Enable access to Divisor Latches.
+		LPC_UART0->LCR |= 3 << 0 ;//8bit data, 1Stop bit, No parity
+		LPC_UART0->DLL = 117;
+		LPC_UART0->DLM = 0;
+		//LPC_UART0->FCR |= 1 << 0 | 1 << 1 | 1 << 2;//unable FIFO and reset TX RX FIFO 
+	  LPC_UART0->FDR |= 0X10 ;//DIVADDVAL - 1 MULVAL - 2
+		//LPC_UART0->LCR &= ~(1 << 7); //Disable access to Divisor Latches.
+	}		
+	
+	void SerialWrite(char ch)
+	{
+			while((LPC_UART0->LSR & (1 << 5))); //wait until THR is empty
+			//now we can write to Tx FIFO
+			LPC_UART0->THR = ch;
+ 	}
+	
+	char SerialRead(void)
+	{
+			while(!(LPC_UART0->LSR & 1 << 0)); //wait until data arrives in Rx FIFO
+			return LPC_UART0->RBR;
+	}	
+
+
+  #include "usrdef.h"
+
+
+	void _delay(uint32_t delay)
+	{
+			uint32_t i;
+			for(i = 0;i < delay;i++ );
+	}
+
+   
+	 uint8_t PinRead(uint32_t portno,uint32_t pinno)
+	 {
+		 uint32_t* portaddr;
+		 portaddr = (uint32_t*)(LPC_GPIO0_BASE+0x14 + 0x20 * portno);
+		 uint32_t ret_val;
+		 ret_val = (*portaddr >> pinno) & 0x01 ;
+		 return ret_val;
+	 }
+	
+	void PinMode(uint8_t Port_number, uint8_t Pin_number, enum ePinMode pin_dir)
+	{
+			 uint32_t *portaddr = (uint32_t*)(LPC_PINCON_BASE + 0x40 + 8 * Port_number);
+			 if(Pin_number <= 15)
+			 {
+				*portaddr = *(portaddr ) | (0x0 << Pin_number*2);
+				*portaddr = *(portaddr ) | (pin_dir << Pin_number*2);
+			 }
+			else
+			{
+				 *portaddr = *(portaddr ) | (0x0 << (Pin_number - 16)*2);
+				 *portaddr = *(portaddr ) | (pin_dir << (Pin_number - 16)*2);
+			}
+			
+	}	
+
+
+	void PinSelFunc(uint8_t Port_number , uint8_t Pin_number,enum ePinFun pin_func)
+	{
+			
+			 if(Pin_number <= 15)
+			 {
+				 uint32_t *portaddr = (uint32_t*)(LPC_PINCON_BASE + 8*Port_number);
+				*portaddr = *(portaddr) | (0x0 << (Pin_number*2));
+				*portaddr = *(portaddr) | (pin_func << Pin_number*2);
+			 }
+			else
+			{
+				 uint32_t *portaddr = (uint32_t*)(LPC_PINCON_BASE + 0x04 + 8*Port_number);
+				 *portaddr = *(portaddr ) | (0x00 << (Pin_number - 16)*2);
+				 *portaddr = *(portaddr) | (pin_func << (Pin_number - 16)*2);
+			}
+	}	
+
+
+	void PinDir(uint32_t PORT,uint32_t PIN ,enum ePinDir dir)
+	{
+			 uint32_t *portaddr = (uint32_t*)(LPC_GPIO0_BASE + 0x20 * PORT);
+			 if(dir == 1)
+			 {
+					*portaddr = (*portaddr) | (1 << PIN);
+			 }
+			else
+			{
+				 *portaddr = (*portaddr) & ~(1 << PIN);
+			}
+			
+	}	
+
+	void PinWrite(uint32_t PORT,uint32_t PIN ,uint8_t sel)
+	{
+			 uint32_t *portaddr = (uint32_t*)(LPC_GPIO0_BASE +0x14 + 0x20 * PORT);
+			 if(sel == 1)
+			 {
+				 *portaddr = (*portaddr) | (1 << PIN);
+			 }
+			else
+			{
+				 *portaddr = (*portaddr) & ~(1 << PIN);
+			}
+			
+	}	
+
+  #ifndef __USRDEF_H__
+  #define __USRDEF_H__
+	#include "lpc17xx.h"
+	#include "system_LPC17xx.h"
+  enum ePinFun  { FUNCTION0=0,FUNCTION1,FUNCTION2,FUNCTION3};
+	enum ePinDir{INPUT = 0 , OUTPUT};
+	enum ePinMode  { PULLUP=0,REPEATER,NOTHING,PULLDOWN};
+  extern void PinSelFunc(uint8_t Port_number , uint8_t Pin_number,enum ePinFun pin_func);
+  extern void PinDir(uint32_t PORT,uint32_t PIN ,enum ePinDir dir);
+  extern void PinWrite(uint32_t PORT,uint32_t PIN ,uint8_t sel);
+  extern void _delay(uint32_t delay);
+	extern void PinMode(uint8_t Port_number, uint8_t Pin_number, enum ePinMode pin_dir);
+	extern uint8_t PinRead(uint32_t portno,uint32_t pinno);
+	
+	#endif
+	
