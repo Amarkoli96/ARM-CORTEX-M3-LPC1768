@@ -1,0 +1,84 @@
+#include "lpc17xx.h"
+#include "system_LPC17xx.h"
+
+void initURT(void)
+{
+
+						LPC_SC->PCONP       |= (1<<3);         //POWER
+						LPC_SC->PCLKSEL0     = 0;               //CLOCK 00(Divide with 4 .....18MHz) 
+	          LPC_PINCON->PINSEL0 |= (1<<4);           //pinsel for RXD0(0.3---- 01)                                                                               
+						LPC_PINCON->PINSEL0 |= (1<<6);           //pinsel for RXD0(0.3---- 01)
+						//LPC_UART0->LCR       |=0x83 ;             //enable DLL,DLM                                                                        
+						LPC_UART0->LCR |=0x03;
+						                                                                                                                                   
+						//LPC_UART0->FDR      |= (1<<5);           // fractional division register for MULVAL                                                                    
+						//LPC_UART0->DLL       = 78;               //to get baud rate of 9600 LSB                                                                                                                                                                                                                                                               // to get baud rate of 9600 LSB                                                                                                                                         // to get baud rate of 9600 LSB         
+						//LPC_UART0->DLM       = 0;                //MSB  
+						//LPC_UART0->FDR       = 0x21;               // fractional division register for DIVADDVAL      
+           // LPC_UART0->LCR 	     =0X03; 
+	          LPC_GPIO1->FIODIR |=(1<<29);
+	         // LPC_UART0->LCR &= ~(1<<7); //Disabling DLAB bit locks the DLL and DLM values.
+						LPC_UART0->FCR       = 0x07;              //to enable FIFO (FIFO control register)                                                                                                                              
+						 LPC_UART0->ACR = 0x01;                                                                                    
+}
+================================================
+#include "lpc17xx.h"
+#include "system_LPC17xx.h"
+uint8_t val;
+void initURT(void);
+void uart_tra(void);
+void 	uart_rvc(void);
+
+int main()
+{    
+	initURT();
+	while(1)
+	{
+		uart_rvc();
+	}
+}
+void uart_tra(void)
+{
+	uint32_t i = 0;
+	char a[] = "sushma";
+while((LPC_UART0->LSR &0X20) == 0X20)
+{
+	for(i=0;a[i];i++)
+			{
+					 LPC_UART0->THR = a[i];
+			}
+	}
+
+}
+void uart_rvc(void)
+{
+									while(1)
+									{
+									
+											while(((LPC_UART0->LSR)&0x01)==0x01)   
+									{              
+									val=LPC_UART0->RBR;     //Read data from RBR Register.
+									if((LPC_UART0->LSR & 0x20)==0x20)
+									LPC_UART0->THR=val;	
+									if(val == 'a')
+									{
+												LPC_GPIO1->FIOSET3 =LPC_GPIO1->FIOSET3  | (1<<5);
+
+									}
+									else if(val == 'b')
+									{
+																	
+												LPC_GPIO1->FIOCLR3 =LPC_GPIO1->FIOCLR3  | (1<<5);
+	
+									}
+	
+	}
+}
+}
+
+
+
+		
+
+
+
