@@ -1,1 +1,1 @@
-Frequency of 1.843200 MHz it will give DLest value 
+Frequency of 1.843200 MHz it will give integer DLest value allways 
